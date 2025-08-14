@@ -109,6 +109,9 @@ export class D2TableViewerProvider {
                 case 'toggleEditable':
                     // No server-side action needed, just acknowledge
                     break;
+                case 'saveTableData':
+                    await this.handleSaveTableData(message.data, uri);
+                    break;
             }
         });
 
@@ -165,6 +168,34 @@ export class D2TableViewerProvider {
         await this.updateTableContent(panel, uri);
         
         vscode.window.showInformationMessage(`Text wrapping ${newWrapText ? 'enabled' : 'disabled'} for table columns.`);
+    }
+
+    private async handleSaveTableData(tableData: any, uri: vscode.Uri): Promise<void> {
+        try {
+            if (!uri || !uri.fsPath) {
+                throw new Error('Invalid file URI for saving');
+            }
+
+            // Convert the table data back to TSV format
+            const lines: string[] = [];
+            
+            // Add header row
+            lines.push(tableData.headers.join('\t'));
+            
+            // Add data rows
+            tableData.rows.forEach((row: string[]) => {
+                lines.push(row.join('\t'));
+            });
+            
+            // Write to file
+            const content = lines.join('\n');
+            await fs.promises.writeFile(uri.fsPath, content, 'utf8');
+            
+            vscode.window.showInformationMessage(`Table data saved to ${uri.fsPath}`);
+        } catch (error) {
+            console.error('Error saving table data:', error);
+            vscode.window.showErrorMessage(`Failed to save table data: ${error}`);
+        }
     }
 
     private async updateTableContent(panel: vscode.WebviewPanel, uri: vscode.Uri): Promise<void> {
@@ -406,6 +437,7 @@ export class D2TableViewerProvider {
                     <button onclick="adjustColumnWidth()">📏 Adjust Max Width</button>
                     <button onclick="toggleTextWrap()" id="wrapButton">${wrapText ? '📖 Disable Wrap' : '📑 Enable Wrap'}</button>
                     <button onclick="toggleEditable()" id="editButton">✏️ Make Editable</button>
+                    <button onclick="saveTable()" id="saveButton" style="display: none;">💾 Save Changes</button>
                     <button onclick="exportToCSV()">📄 Export CSV</button>
                     <button onclick="copyTable()">📋 Copy Table</button>
                     <button onclick="openInEditor()">📝 Edit Source</button>
@@ -476,6 +508,7 @@ export class D2TableViewerProvider {
                 
                 function toggleEditable() {
                     const button = document.getElementById('editButton');
+                    const saveButton = document.getElementById('saveButton');
                     const cells = document.querySelectorAll('#dataTable tbody td');
                     const isCurrentlyEditable = button.textContent.includes('Lock');
                     
@@ -487,6 +520,7 @@ export class D2TableViewerProvider {
                         });
                         button.textContent = '✏️ Make Editable';
                         button.title = 'Make table cells editable';
+                        saveButton.style.display = 'none';
                     } else {
                         // Make editable
                         cells.forEach(cell => {
@@ -502,6 +536,11 @@ export class D2TableViewerProvider {
                                     selection.removeAllRanges();
                                     selection.addRange(range);
                                 }
+                            });
+                            
+                            // Add input event to track changes
+                            cell.addEventListener('input', function() {
+                                markAsChanged();
                             });
                             
                             // Add keydown event to handle Enter key and prevent newlines
@@ -532,13 +571,56 @@ export class D2TableViewerProvider {
                                 const paste = (e.clipboardData || window.clipboardData).getData('text');
                                 const cleanPaste = paste.replace(/\\r?\\n/g, ' ').trim();
                                 document.execCommand('insertText', false, cleanPaste);
+                                markAsChanged();
                             });
                         });
                         button.textContent = '🔒 Lock Editing';
                         button.title = 'Lock table cells from editing';
+                        saveButton.style.display = 'inline-block';
                     }
                     
                     vscode.postMessage({ command: 'toggleEditable' });
+                }
+                
+                function markAsChanged() {
+                    const saveButton = document.getElementById('saveButton');
+                    saveButton.style.backgroundColor = 'var(--vscode-button-secondaryBackground)';
+                    saveButton.style.color = 'var(--vscode-button-secondaryForeground)';
+                    saveButton.textContent = '💾 Save Changes *';
+                }
+                
+                function saveTable() {
+                    const headers = [];
+                    const rows = [];
+                    
+                    // Get headers
+                    const headerCells = document.querySelectorAll('#dataTable thead th');
+                    headerCells.forEach(cell => {
+                        headers.push(cell.textContent.trim());
+                    });
+                    
+                    // Get data rows
+                    const dataRows = document.querySelectorAll('#dataTable tbody tr');
+                    dataRows.forEach(row => {
+                        const rowData = [];
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            rowData.push(cell.textContent.trim());
+                        });
+                        rows.push(rowData);
+                    });
+                    
+                    // Send data to extension
+                    vscode.postMessage({ 
+                        command: 'saveTableData',
+                        data: { headers, rows }
+                    });
+                    
+                    // Reset save button state
+                    const saveButton = document.getElementById('saveButton');
+                    saveButton.style.backgroundColor = 'var(--vscode-button-background)';
+                    saveButton.style.color = 'var(--vscode-button-foreground)';
+                    saveButton.textContent = '💾 Save Changes';
                 }
                 
                 function openInEditor() {
