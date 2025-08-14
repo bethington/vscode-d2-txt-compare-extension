@@ -1,0 +1,6 @@
+ID	Name	Cost	Description
+001	Health Potion	50	Restores health
+002	Mana Potion	80	Restores mana
+003	Antidote	100	Cures poison
+004	Thawing Potion	120	Cures freeze and cold
+005	Stamina Potion	75	Restores stamina

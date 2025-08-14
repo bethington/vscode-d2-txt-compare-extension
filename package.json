@@ -1,0 +1,300 @@
+{
+  "name": "vscode-d2-txt-compare-extension",
+  "displayName": "D2 Modder's Comparator",
+  "description": "A comprehensive VSCode extension for Diablo 2 modders to compare, edit, and manage TXT data files",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other",
+    "Formatters",
+    "Data Science"
+  ],
+  "activationEvents": [
+    "onLanguage:d2txt",
+    "onFileSystem:file",
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "views": {
+      "d2-modding": [
+        {
+          "id": "d2DatasetExplorer",
+          "name": "D2 Datasets",
+          "when": "d2ModdingEnabled"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "d2-modding",
+          "title": "D2 Modding",
+          "icon": "$(database)"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "d2Modding.enableModding",
+        "title": "Toggle D2 Modding",
+        "category": "D2 Modding"
+      },
+      {
+        "command": "d2Modding.addDataset",
+        "title": "Add Dataset",
+        "category": "D2 Modding",
+        "icon": "$(add)"
+      },
+      {
+        "command": "d2Modding.selectComparisonDataset",
+        "title": "CompareTxts",
+        "category": "D2 Modding",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "d2Modding.compareFiles",
+        "title": "Compare TXT Files",
+        "category": "D2 Modding"
+      },
+      {
+        "command": "d2Modding.openComparator",
+        "title": "Open D2 Comparator",
+        "category": "D2 Modding",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "d2Modding.searchAcrossDatasets",
+        "title": "Search Across Datasets",
+        "category": "D2 Modding",
+        "icon": "$(search)"
+      },
+      {
+        "command": "d2Modding.validateTxtFile",
+        "title": "Validate TXT File",
+        "category": "D2 Modding"
+      },
+      {
+        "command": "d2Modding.convertFormat",
+        "title": "Convert Format (Legacy ↔ D2R)",
+        "category": "D2 Modding"
+      },
+      {
+        "command": "d2Modding.removeDataset",
+        "title": "Remove Dataset",
+        "category": "D2 Modding",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "d2Modding.showFileTabSettings",
+        "title": "Show File-Specific Tab Settings",
+        "category": "D2 Modding",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "d2Modding.openTableViewer",
+        "title": "Open Table Viewer",
+        "category": "D2 Modding",
+        "icon": "$(table)"
+      },
+      {
+        "command": "d2Modding.convertTSVToSpaces",
+        "title": "Convert TSV to Space-Aligned",
+        "category": "D2 Modding",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "d2Modding.convertSpacesToTSV",
+        "title": "Convert Space-Aligned to TSV",
+        "category": "D2 Modding",
+        "icon": "$(arrow-left)"
+      },
+      {
+        "command": "d2Modding.previewSpaceAlignment",
+        "title": "Preview Space Alignment",
+        "category": "D2 Modding",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "d2Modding.openInTextEditor",
+        "title": "Open in Text Editor",
+        "category": "D2 Modding",
+        "icon": "$(edit)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "d2Modding.selectComparisonDataset",
+          "when": "view == d2DatasetExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "d2Modding.addDataset",
+          "when": "view == d2DatasetExplorer",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "d2Modding.compareFiles",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "compare@1"
+        },
+        {
+          "command": "d2Modding.validateTxtFile",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "compare@2"
+        },
+        {
+          "command": "d2Modding.convertFormat",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "convert@1"
+        },
+        {
+          "command": "d2Modding.openTableViewer",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "view@1"
+        },
+        {
+          "command": "d2Modding.convertTSVToSpaces",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "convert@2"
+        },
+        {
+          "command": "d2Modding.previewSpaceAlignment",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "view@2"
+        },
+        {
+          "command": "d2Modding.openInTextEditor",
+          "when": "view == d2DatasetExplorer && viewItem == d2txtFile",
+          "group": "view@3"
+        },
+        {
+          "command": "d2Modding.removeDataset",
+          "when": "view == d2DatasetExplorer && viewItem == d2Dataset",
+          "group": "dataset@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "d2Modding.compareFiles",
+          "when": "resourceExtname == .txt",
+          "group": "compare"
+        },
+        {
+          "command": "d2Modding.validateTxtFile",
+          "when": "resourceExtname == .txt",
+          "group": "validate"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "d2Modding.txtEditor",
+        "displayName": "D2 Text Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.txt"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "languages": [
+      {
+        "id": "d2txt",
+        "aliases": [
+          "Diablo 2 TXT",
+          "d2txt"
+        ],
+        "extensions": [
+          ".txt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "d2txt",
+        "scopeName": "source.d2txt",
+        "path": "./syntaxes/d2txt.tmGrammar.json"
+      }
+    ],
+    "configuration": {
+      "title": "D2 Modding",
+      "properties": {
+        "d2Modding.autoEnable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically enable D2 modding features when opening TXT files"
+        },
+        "d2Modding.defaultDatasetPath": {
+          "type": "string",
+          "default": "",
+          "description": "Default path to D2 game data files"
+        },
+        "d2Modding.autoDetectGameInstalls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect D2 and D2R game installations"
+        },
+        "d2Modding.diffSensitivity": {
+          "type": "string",
+          "enum": [
+            "strict",
+            "moderate",
+            "relaxed"
+          ],
+          "default": "moderate",
+          "description": "Sensitivity level for file comparisons"
+        },
+        "d2Modding.validateOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Validate TXT files when saved"
+        },
+        "d2Modding.tableViewer.maxColumnWidth": {
+          "type": "number",
+          "default": 200,
+          "minimum": 50,
+          "maximum": 500,
+          "description": "Maximum width (in pixels) for columns in the Table Viewer"
+        },
+        "d2Modding.tableViewer.wrapText": {
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap text in table columns when content exceeds maximum column width"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "eslint": "^9.32.0",
+    "typescript": "^5.9.2",
+    "ts-loader": "^9.5.2",
+    "webpack": "^5.101.0",
+    "webpack-cli": "^6.0.1",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

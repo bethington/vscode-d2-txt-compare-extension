@@ -1,0 +1,59 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Diablo 2 TXT",
+    "patterns": [
+        {
+            "include": "#header"
+        },
+        {
+            "include": "#data-row"
+        },
+        {
+            "include": "#comments"
+        }
+    ],
+    "repository": {
+        "header": {
+            "patterns": [
+                {
+                    "match": "^([^\\t\\r\\n]+)(?=\\t|$)",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.type.d2txt"
+                        }
+                    }
+                }
+            ]
+        },
+        "data-row": {
+            "patterns": [
+                {
+                    "match": "\\b\\d+\\b",
+                    "name": "constant.numeric.d2txt"
+                },
+                {
+                    "match": "\\b(true|false|True|False|TRUE|FALSE|1|0)\\b",
+                    "name": "constant.language.boolean.d2txt"
+                },
+                {
+                    "match": "\\b[A-Za-z][A-Za-z0-9_]*\\b",
+                    "name": "variable.other.d2txt"
+                },
+                {
+                    "match": "\\t",
+                    "name": "punctuation.separator.d2txt"
+                }
+            ]
+        },
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.d2txt",
+                    "begin": "//",
+                    "end": "$"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.d2txt"
+}
