@@ -388,7 +388,7 @@ export class D2TableViewerProvider {
                     }
                 
                     tr:hover {
-                        background-color: var(--vscode-list-focusBackground);
+                        background-color: purple;
                     }
                 
                     .toolbar {
