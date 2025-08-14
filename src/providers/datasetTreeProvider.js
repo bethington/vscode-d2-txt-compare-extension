@@ -57,27 +57,37 @@ class DatasetTreeProvider {
             // Root level - show datasets
             return Promise.resolve(this.datasets.map(dataset => new DatasetItem(dataset.name, dataset.path, vscode.TreeItemCollapsibleState.Collapsed, 'dataset')));
         }
-        else if (element.type === 'dataset') {
-            // Dataset level - show TXT files
-            return this.getTxtFiles(element.resourceUri.fsPath);
+        else if (element.type === 'dataset' || element.type === 'folder') {
+            // Dataset or folder level - show folders and TXT files
+            return this.getDirectoryContents(element.resourceUri.fsPath);
         }
         return Promise.resolve([]);
     }
-    async getTxtFiles(datasetPath) {
-        const files = [];
+    async getDirectoryContents(directoryPath) {
+        const items = [];
         try {
-            const entries = await fs.promises.readdir(datasetPath, { withFileTypes: true });
+            const entries = await fs.promises.readdir(directoryPath, { withFileTypes: true });
             for (const entry of entries) {
-                if (entry.isFile() && entry.name.endsWith('.txt')) {
-                    const filePath = path.join(datasetPath, entry.name);
-                    files.push(new DatasetItem(entry.name, filePath, vscode.TreeItemCollapsibleState.None, 'file'));
+                const fullPath = path.join(directoryPath, entry.name);
+                if (entry.isDirectory()) {
+                    // Add folders
+                    items.push(new DatasetItem(entry.name, fullPath, vscode.TreeItemCollapsibleState.Collapsed, 'folder'));
+                }
+                else if (entry.isFile() && entry.name.endsWith('.txt')) {
+                    // Add TXT files
+                    items.push(new DatasetItem(entry.name, fullPath, vscode.TreeItemCollapsibleState.None, 'file'));
                 }
             }
         }
         catch (error) {
-            console.error(`Error reading directory ${datasetPath}:`, error);
+            console.error('Error reading directory:', error);
         }
-        return files.sort((a, b) => a.label.toString().localeCompare(b.label.toString()));
+        // Sort: folders first, then files, both alphabetically
+        return items.sort((a, b) => {
+            if (a.type === 'folder' && b.type !== 'folder') { return -1; }
+            if (a.type !== 'folder' && b.type === 'folder') { return 1; }
+            return a.label.toString().localeCompare(b.label.toString());
+        });
     }
     async addDataset(folderUri) {
         const folderName = path.basename(folderUri.fsPath);
@@ -126,14 +136,20 @@ class DatasetItem extends vscode.TreeItem {
         this.resourceUri = vscode.Uri.file(resourcePath);
         if (type === 'file') {
             this.command = {
-                command: 'vscode.open',
-                title: 'Open File',
-                arguments: [this.resourceUri]
+                command: 'd2Modding.openTableViewer',
+                title: 'Open in Table Viewer',
+                arguments: [this]
             };
             this.contextValue = 'd2txtFile';
+            this.tooltip = `${label} - Click to open in Table Viewer`;
+        }
+        else if (type === 'folder') {
+            this.contextValue = 'd2Folder';
+            this.tooltip = `Folder: ${label}`;
         }
         else {
             this.contextValue = 'd2Dataset';
+            this.tooltip = `Dataset: ${label}`;
         }
         this.iconPath = this.getIcon();
     }
@@ -141,8 +157,11 @@ class DatasetItem extends vscode.TreeItem {
         if (this.type === 'dataset') {
             return new vscode.ThemeIcon('database');
         }
+        else if (this.type === 'folder') {
+            return new vscode.ThemeIcon('folder');
+        }
         else {
-            return new vscode.ThemeIcon('file-text');
+            return new vscode.ThemeIcon('table');
         }
     }
 }

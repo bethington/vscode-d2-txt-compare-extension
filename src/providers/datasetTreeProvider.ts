@@ -32,38 +32,51 @@ export class DatasetTreeProvider implements vscode.TreeDataProvider<DatasetItem>
                     'dataset'
                 )
             ));
-        } else if (element.type === 'dataset') {
-            // Dataset level - show TXT files
-            return this.getTxtFiles(element.resourceUri!.fsPath);
+        } else if (element.type === 'dataset' || element.type === 'folder') {
+            // Dataset or folder level - show folders and TXT files
+            return this.getDirectoryContents(element.resourceUri!.fsPath);
         }
         return Promise.resolve([]);
     }
 
-    private async getTxtFiles(datasetPath: string): Promise<DatasetItem[]> {
-        const files: DatasetItem[] = [];
+    private async getDirectoryContents(directoryPath: string): Promise<DatasetItem[]> {
+        const items: DatasetItem[] = [];
         
         try {
-            const entries = await fs.promises.readdir(datasetPath, { withFileTypes: true });
+            const entries = await fs.promises.readdir(directoryPath, { withFileTypes: true });
             
             for (const entry of entries) {
-                if (entry.isFile() && entry.name.endsWith('.txt')) {
-                    const filePath = path.join(datasetPath, entry.name);
-                    files.push(new DatasetItem(
+                const fullPath = path.join(directoryPath, entry.name);
+                
+                if (entry.isDirectory()) {
+                    // Add folders
+                    items.push(new DatasetItem(
                         entry.name,
-                        filePath,
+                        fullPath,
+                        vscode.TreeItemCollapsibleState.Collapsed,
+                        'folder'
+                    ));
+                } else if (entry.isFile() && entry.name.endsWith('.txt')) {
+                    // Add TXT files
+                    items.push(new DatasetItem(
+                        entry.name,
+                        fullPath,
                         vscode.TreeItemCollapsibleState.None,
                         'file'
                     ));
                 }
             }
         } catch (error) {
-            console.error('Error reading dataset directory:', error);
+            console.error('Error reading directory:', error);
         }
-
-        return files.sort((a, b) => a.label.localeCompare(b.label));
-    }
-
-    async addDataset(uri: vscode.Uri): Promise<void> {
+        
+        // Sort: folders first, then files, both alphabetically
+        return items.sort((a, b) => {
+            if (a.type === 'folder' && b.type !== 'folder') { return -1; }
+            if (a.type !== 'folder' && b.type === 'folder') { return 1; }
+            return a.label.localeCompare(b.label);
+        });
+    }    async addDataset(uri: vscode.Uri): Promise<void> {
         const datasetName = path.basename(uri.fsPath);
         const dataset: Dataset = {
             name: datasetName,
@@ -181,7 +194,7 @@ export class DatasetItem extends vscode.TreeItem {
         public readonly label: string,
         public readonly resourcePath: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly type: 'dataset' | 'file'
+        public readonly type: 'dataset' | 'file' | 'folder'
     ) {
         super(label, collapsibleState);
 
@@ -195,6 +208,9 @@ export class DatasetItem extends vscode.TreeItem {
             };
             this.contextValue = 'd2txtFile';
             this.tooltip = `${label} - Click to open in Table Viewer`;
+        } else if (type === 'folder') {
+            this.contextValue = 'd2Folder';
+            this.tooltip = `Folder: ${label}`;
         } else {
             this.contextValue = 'd2Dataset';
             this.tooltip = `Dataset: ${label}`;
@@ -206,6 +222,8 @@ export class DatasetItem extends vscode.TreeItem {
     private getIcon(): vscode.ThemeIcon {
         if (this.type === 'dataset') {
             return new vscode.ThemeIcon('database');
+        } else if (this.type === 'folder') {
+            return new vscode.ThemeIcon('folder');
         } else {
             return new vscode.ThemeIcon('table'); // Changed from 'file-text' to 'table' to indicate table viewer
         }
