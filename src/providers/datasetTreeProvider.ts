@@ -76,8 +76,24 @@ export class DatasetTreeProvider implements vscode.TreeDataProvider<DatasetItem>
             if (a.type !== 'folder' && b.type === 'folder') { return 1; }
             return a.label.localeCompare(b.label);
         });
-    }    async addDataset(uri: vscode.Uri): Promise<void> {
-        const datasetName = path.basename(uri.fsPath);
+    }
+
+    private getDatasetDisplayName(datasetPath: string): string {
+        // Split the path and get the last 4 levels
+        const pathParts = datasetPath.split(path.sep).filter(part => part.length > 0);
+        
+        if (pathParts.length <= 4) {
+            // If 4 or fewer parts, join them all
+            return pathParts.join('\\');
+        } else {
+            // Get the last 4 parts
+            const lastFourParts = pathParts.slice(-4);
+            return lastFourParts.join('\\');
+        }
+    }
+
+    async addDataset(uri: vscode.Uri): Promise<void> {
+        const datasetName = this.getDatasetDisplayName(uri.fsPath);
         const dataset: Dataset = {
             name: datasetName,
             path: uri.fsPath,
@@ -177,11 +193,28 @@ export class DatasetTreeProvider implements vscode.TreeDataProvider<DatasetItem>
 
     private async loadDatasets(): Promise<void> {
         const saved = this.context.globalState.get<Dataset[]>('d2Datasets', []);
-        this.datasets = saved;
         
-        // Load comparison dataset
+        // Update dataset names to use the new display format
+        this.datasets = saved.map(dataset => ({
+            ...dataset,
+            name: this.getDatasetDisplayName(dataset.path)
+        }));
+        
+        // Load comparison dataset and update its name if it exists
         const savedComparison = this.context.globalState.get<Dataset | null>('d2ComparisonDataset', null);
-        this.comparisonDataset = savedComparison;
+        if (savedComparison) {
+            this.comparisonDataset = {
+                ...savedComparison,
+                name: this.getDatasetDisplayName(savedComparison.path)
+            };
+        } else {
+            this.comparisonDataset = null;
+        }
+        
+        // Save the updated dataset names
+        if (saved.length > 0) {
+            await this.saveDatasets();
+        }
     }
 
     private async saveDatasets(): Promise<void> {
