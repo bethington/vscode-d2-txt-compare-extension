@@ -1,4 +1,4 @@
-# vscode# D2 Modder's Comparator
+# D2 Modder's Comparator
 
 A comprehensive Visual Studio Code extension for Diablo 2 modders to compare, edit, and manage TXT data files. This extension is inspired by the D2Compare tool and reimagined as a native VSCode plugin to empower Diablo 2 modders with powerful tools for editing and comparing tab-delimited .TXT data files.
 
@@ -14,6 +14,13 @@ A comprehensive Visual Studio Code extension for Diablo 2 modders to compare, ed
 - **Multi-File Diffs**: Compare entire directories with summary reports
 - **Intelligent Highlighting**: Color-coded differences at row, column, and cell level
 - **Filter Options**: Ignore whitespace, comments, or specific columns
+
+### 📊 Table Viewer
+- **Spreadsheet Interface**: View and edit TXT files in an intuitive table format
+- **Custom Headers**: Configurable column headers with smart abbreviations for D2 data files
+- **Dynamic Columns**: Adjustable column widths with tight-fitting options
+- **Text Wrapping**: Optional text wrapping for long content
+- **Real-time Editing**: Edit cells directly with immediate validation
 
 ### ✏️ Advanced Editing
 - **Syntax Highlighting**: Custom syntax highlighting for D2 TXT files
@@ -40,6 +47,14 @@ A comprehensive Visual Studio Code extension for Diablo 2 modders to compare, ed
 - **Range Validation**: Check for reasonable value ranges
 - **Cross-Reference**: Validate skill/item/monster references
 
+## Screenshots
+
+### Table Viewer - Dark Theme
+
+![Table Viewer Dark Theme](images/Screenshot_dark.png)
+
+The D2 Table Viewer provides an intuitive spreadsheet-like interface for viewing and editing D2 .txt files, with support for custom headers, column width adjustment, and automatic data validation.
+
 ## Getting Started
 
 ### Installation
@@ -57,23 +72,34 @@ A comprehensive Visual Studio Code extension for Diablo 2 modders to compare, ed
 
 - `D2 Modding: Toggle D2 Modding` - Toggle D2 modding features on/off
 - `D2 Modding: Add Dataset` - Add a new dataset folder
-- `D2 Modding: Compare TXT Files` - Compare selected file with another
+- `D2 Modding: Select Comparison Dataset` - Choose a dataset for file comparisons
+- `D2 Modding: Compare Files` - Compare selected file with another
 - `D2 Modding: Open Comparator` - Open the comparison webview
 - `D2 Modding: Search Across Datasets` - Global search functionality
 - `D2 Modding: Validate TXT File` - Validate current or selected file
 - `D2 Modding: Convert Format` - Convert between Legacy and D2R formats
+- `D2 Modding: Open Table Viewer` - Open TXT file in spreadsheet-like table viewer
+- `D2 Modding: Convert TSV to Space-Aligned` - Convert tab-separated to space-aligned format
+- `D2 Modding: Convert Space-Aligned to TSV` - Convert space-aligned to tab-separated format
+- `D2 Modding: Preview Space Alignment` - Preview space-aligned format without saving
 
 ## Configuration
 
 ```json
 {
     "d2Modding.autoEnable": true,
-    "d2Modding.defaultDatasetPath": "C:\Games\Diablo II\data",
+    "d2Modding.defaultDatasetPath": "C:\\Games\\Diablo II\\data",
     "d2Modding.autoDetectGameInstalls": true,
     "d2Modding.diffSensitivity": "moderate",
     "d2Modding.validateOnSave": true,
     "d2Modding.tableViewer.maxColumnWidth": 200,
-    "d2Modding.tableViewer.wrapText": false
+    "d2Modding.tableViewer.wrapText": false,
+    "d2Modding.tableViewer.customHeaders": {
+        "CharsiMagicMin": "CharM↓",
+        "LysanderMagicMax": "LysM↑",
+        "srvstopfunc": "SrvStop",
+        "durability": "Dur"
+    }
 }
 ```
 
@@ -86,6 +112,7 @@ A comprehensive Visual Studio Code extension for Diablo 2 modders to compare, ed
 - **`d2Modding.validateOnSave`**: Validate TXT files when saved
 - **`d2Modding.tableViewer.maxColumnWidth`** (default: `200`): Maximum width in pixels for table columns (50-500px range)
 - **`d2Modding.tableViewer.wrapText`** (default: `false`): Wrap text in table columns when content exceeds maximum column width
+- **`d2Modding.tableViewer.customHeaders`** (default: `{}`): Custom header mappings for D2 table files. Map original header names to preferred display names (e.g., `{"CharsiMagicMin": "CharM↓", "durability": "Dur"}`)
 
 ## Supported Files
 
@@ -105,12 +132,17 @@ src/
 ├── extension.ts              # Main extension entry point
 ├── providers/
 │   └── datasetTreeProvider.ts # Dataset tree view management
+├── viewers/
+│   └── tableViewer.ts        # Table viewer with spreadsheet interface
 ├── webviews/
-│   └── comparatorWebview.ts   # File comparison interface
+│   └── comparatorWebview.ts  # File comparison interface
+├── editors/
+│   └── d2TextEditor.ts       # Custom text editor for D2 files
 └── utils/
-    ├── fileValidator.ts       # TXT file validation
-    ├── formatConverter.ts     # Legacy/D2R conversion
-    └── searchProvider.ts      # Global search functionality
+    ├── fileValidator.ts      # TXT file validation
+    ├── formatConverter.ts    # TSV/Space-aligned conversion
+    ├── searchProvider.ts     # Global search functionality
+    └── textFormatter.ts      # Text formatting utilities
 ```
 
 ## Development
@@ -157,8 +189,10 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Near Term (v1.0)
 - [x] Basic dataset management
 - [x] File comparison and validation
-- [x] Format conversion (Legacy ↔ D2R)
+- [x] Table Viewer with custom headers and column width adjustment
+- [x] Format conversion (TSV ↔ Space-aligned)
 - [x] Global search functionality
+- [x] Auto-refresh on configuration changes
 - [ ] Enhanced schema validation
 - [ ] Export functionality
 
@@ -168,6 +202,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - [ ] Advanced merge tools
 - [ ] Mod dependency tracking
 - [ ] Visual diff enhancements
+- [ ] Legacy ↔ D2R format conversion
 
 ## Known Issues
 
@@ -189,74 +224,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Inspired by the original D2Compare tool
 - Thanks to the D2 modding community for feedback and testing
-- Built on the excellent VS Code extension API-txt-compare-extension README
-
-This is the README for your extension "vscode-d2-txt-compare-extension". After writing up a brief description, we recommend including the following sections.
-
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+- Built on the excellent VS Code extension API

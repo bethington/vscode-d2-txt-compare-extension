@@ -3,6 +3,11 @@
   "displayName": "D2 Modder's Comparator",
   "description": "A comprehensive VSCode extension for Diablo 2 modders to compare, edit, and manage TXT data files",
   "version": "0.0.1",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bethington/vscode-d2-txt-compare-extension.git"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
