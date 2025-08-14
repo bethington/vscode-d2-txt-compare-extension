@@ -106,6 +106,9 @@ export class D2TableViewerProvider {
                 case 'openInEditor':
                     await vscode.commands.executeCommand('vscode.open', uri);
                     break;
+                case 'toggleEditable':
+                    // No server-side action needed, just acknowledge
+                    break;
             }
         });
 
@@ -312,8 +315,21 @@ export class D2TableViewerProvider {
                         border-bottom: 2px solid var(--vscode-widget-border);
                         position: sticky;
                         text-align: center;
+                        top: 0;
                         z-index: 10;
                     }
+                    
+                    th.sticky-col {
+                        position: sticky;
+                        left: 0;
+                        z-index: 12;
+                        background-color: var(--vscode-list-activeSelectionBackground);
+                        color: var(--vscode-list-activeSelectionForeground);
+                        font-weight: bold;
+                        border-right: 2px solid var(--vscode-widget-border);
+                        border-bottom: 2px solid var(--vscode-widget-border);
+                    }
+                    
                     td.sticky-col {
                         background-color: var(--vscode-list-activeSelectionBackground);
                         border-right: 2px solid var(--vscode-widget-border);
@@ -321,6 +337,7 @@ export class D2TableViewerProvider {
                         color: var(--vscode-list-activeSelectionForeground);
                         font-weight: bold;
                         position: sticky;
+                        left: 0;
                         z-index: 11;
                     }
                 
@@ -388,6 +405,7 @@ export class D2TableViewerProvider {
                     <input type="text" class="search-box" placeholder="Search table..." id="searchBox">
                     <button onclick="adjustColumnWidth()">📏 Adjust Max Width</button>
                     <button onclick="toggleTextWrap()" id="wrapButton">${wrapText ? '📖 Disable Wrap' : '📑 Enable Wrap'}</button>
+                    <button onclick="toggleEditable()" id="editButton">✏️ Make Editable</button>
                     <button onclick="exportToCSV()">📄 Export CSV</button>
                     <button onclick="copyTable()">📋 Copy Table</button>
                     <button onclick="openInEditor()">📝 Edit Source</button>
@@ -454,6 +472,73 @@ export class D2TableViewerProvider {
                 
                 function toggleTextWrap() {
                     vscode.postMessage({ command: 'toggleTextWrap' });
+                }
+                
+                function toggleEditable() {
+                    const button = document.getElementById('editButton');
+                    const cells = document.querySelectorAll('#dataTable tbody td');
+                    const isCurrentlyEditable = button.textContent.includes('Lock');
+                    
+                    if (isCurrentlyEditable) {
+                        // Make non-editable
+                        cells.forEach(cell => {
+                            cell.contentEditable = 'false';
+                            cell.classList.remove('editable');
+                        });
+                        button.textContent = '✏️ Make Editable';
+                        button.title = 'Make table cells editable';
+                    } else {
+                        // Make editable
+                        cells.forEach(cell => {
+                            cell.contentEditable = 'true';
+                            cell.classList.add('editable');
+                            
+                            // Add click event to select all content when cell is clicked
+                            cell.addEventListener('click', function() {
+                                if (this.contentEditable === 'true') {
+                                    const range = document.createRange();
+                                    range.selectNodeContents(this);
+                                    const selection = window.getSelection();
+                                    selection.removeAllRanges();
+                                    selection.addRange(range);
+                                }
+                            });
+                            
+                            // Add keydown event to handle Enter key and prevent newlines
+                            cell.addEventListener('keydown', function(e) {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    // Move to next cell (same column, next row)
+                                    const currentRow = this.parentNode;
+                                    const currentCellIndex = Array.from(currentRow.children).indexOf(this);
+                                    const nextRow = currentRow.nextElementSibling;
+                                    
+                                    if (nextRow && nextRow.children[currentCellIndex]) {
+                                        const nextCell = nextRow.children[currentCellIndex];
+                                        nextCell.focus();
+                                        // Select all content in the next cell
+                                        const range = document.createRange();
+                                        range.selectNodeContents(nextCell);
+                                        const selection = window.getSelection();
+                                        selection.removeAllRanges();
+                                        selection.addRange(range);
+                                    }
+                                }
+                            });
+                            
+                            // Prevent pasting content with newlines
+                            cell.addEventListener('paste', function(e) {
+                                e.preventDefault();
+                                const paste = (e.clipboardData || window.clipboardData).getData('text');
+                                const cleanPaste = paste.replace(/\\r?\\n/g, ' ').trim();
+                                document.execCommand('insertText', false, cleanPaste);
+                            });
+                        });
+                        button.textContent = '🔒 Lock Editing';
+                        button.title = 'Lock table cells from editing';
+                    }
+                    
+                    vscode.postMessage({ command: 'toggleEditable' });
                 }
                 
                 function openInEditor() {
