@@ -6,7 +6,7 @@ import { D2FileValidator } from './utils/fileValidator';
 import { D2FormatConverter } from './utils/formatConverter';
 import { D2SearchProvider } from './utils/searchProvider';
 import { D2TextEditorProvider } from './editors/d2TextEditor';
-import { D2TableViewerProvider } from './viewers/tableViewer';
+import { D2TableViewerProvider, getDefaultHeaderMappings } from './viewers/tableViewer';
 import { D2TextFormatter } from './utils/textFormatter';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -323,6 +323,232 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		})
 	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('d2Modding.configureHeaders', async () => {
+			// Show options for header configuration
+			const options = [
+				{
+					label: '🔧 Open Header Settings',
+					description: 'Open VS Code settings to configure custom headers',
+					action: 'openSettings'
+				},
+				{
+					label: '📋 Load Default Mappings',
+					description: 'Pre-populate settings with comprehensive D2 header mappings',
+					action: 'loadDefaults'
+				},
+				{
+					label: '� Load from Data File',
+					description: 'Load mappings directly from extension data file with merge options',
+					action: 'loadFromFile'
+				},
+				{
+					label: '�🗑️ Clear Custom Headers',
+					description: 'Reset to empty custom headers (use defaults only)',
+					action: 'clear'
+				}
+			];
+
+			const selected = await vscode.window.showQuickPick(options, {
+				placeHolder: 'Choose header configuration action',
+				matchOnDescription: true
+			});
+
+			if (selected) {
+				switch (selected.action) {
+					case 'openSettings':
+						await vscode.commands.executeCommand('workbench.action.openSettings', 'd2Modding.tableViewer.customHeaders');
+						break;
+					
+					case 'loadDefaults':
+						const confirmed = await vscode.window.showWarningMessage(
+							'This will replace any existing custom headers with the comprehensive D2 default mappings. Continue?',
+							{ modal: true },
+							'Load Defaults', 'Cancel'
+						);
+						
+						if (confirmed === 'Load Defaults') {
+							// Get the default mappings
+							const defaultMappings = getDefaultHeaderMappings();
+							
+							await vscode.workspace.getConfiguration('d2Modding').update(
+								'tableViewer.customHeaders', 
+								defaultMappings, 
+								vscode.ConfigurationTarget.Global
+							);
+							
+							vscode.window.showInformationMessage(
+								`Loaded ${Object.keys(defaultMappings).length} default header mappings! Refresh table viewers to see changes.`
+							);
+						}
+						break;
+					
+					case 'loadFromFile':
+						// Call the dedicated command
+						await vscode.commands.executeCommand('d2Modding.loadDefaultHeaders');
+						break;
+					
+					case 'loadFromCustomFile':
+						// Call the file picker command
+						await vscode.commands.executeCommand('d2Modding.loadHeadersFromFile');
+						break;
+					
+					case 'clear':
+						const confirmClear = await vscode.window.showWarningMessage(
+							'This will clear all custom headers. Continue?',
+							{ modal: true },
+							'Clear', 'Cancel'
+						);
+						
+						if (confirmClear === 'Clear') {
+							await vscode.workspace.getConfiguration('d2Modding').update(
+								'tableViewer.customHeaders', 
+								{}, 
+								vscode.ConfigurationTarget.Global
+							);
+							
+							vscode.window.showInformationMessage('Custom headers cleared!');
+						}
+						break;
+				}
+			}
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('d2Modding.loadDefaultHeaders', async () => {
+			const choice = await vscode.window.showQuickPick([
+				{
+					label: '$(file-code) Load from Extension\'s Default File',
+					description: 'Load comprehensive D2 header mappings from built-in data file',
+					detail: 'Uses the extension\'s included defaultHeaderMappings.json file'
+				},
+				{
+					label: '$(file-directory) Choose Custom File',
+					description: 'Pick your own JSON file with header mappings',
+					detail: 'Browse and select a custom JSON file to load mappings from'
+				}
+			], {
+				placeHolder: 'How would you like to load header mappings?',
+				matchOnDescription: true
+			});
+
+			if (!choice) {
+				return; // User cancelled
+			}
+
+			if (choice.label.includes('Default File')) {
+				// Load from extension's default file
+				try {
+					const defaultMappings = getDefaultHeaderMappings();
+					
+					if (Object.keys(defaultMappings).length === 0) {
+						vscode.window.showWarningMessage('No default mappings found in data file. The file may be missing or empty. File path checked: dist/defaultHeaderMappings.json');
+						return;
+					}
+					
+					await loadHeaderMappings(defaultMappings, 'extension\'s default file');
+				} catch (error) {
+					vscode.window.showErrorMessage(`Failed to load default headers: ${error}`);
+					console.error('Error loading default headers:', error);
+				}
+			} else {
+				// Let user choose a file
+				await vscode.commands.executeCommand('d2Modding.loadHeadersFromFile');
+			}
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('d2Modding.loadHeadersFromFile', async () => {
+			const fileUri = await vscode.window.showOpenDialog({
+				canSelectMany: false,
+				openLabel: 'Load Header Mappings',
+				filters: {
+					'JSON files': ['json'],
+					'All files': ['*']
+				},
+				title: 'Select Header Mappings File'
+			});
+
+			if (!fileUri || fileUri.length === 0) {
+				return; // User cancelled
+			}
+
+			try {
+				const fileContent = await vscode.workspace.fs.readFile(fileUri[0]);
+				const jsonContent = new TextDecoder().decode(fileContent);
+				const mappings = JSON.parse(jsonContent);
+
+				if (typeof mappings !== 'object' || mappings === null) {
+					vscode.window.showErrorMessage('Selected file does not contain a valid JSON object.');
+					return;
+				}
+
+				const mappingCount = Object.keys(mappings).length;
+				if (mappingCount === 0) {
+					vscode.window.showWarningMessage('Selected file contains no header mappings.');
+					return;
+				}
+
+				await loadHeaderMappings(mappings, path.basename(fileUri[0].fsPath));
+			} catch (error) {
+				if (error instanceof SyntaxError) {
+					vscode.window.showErrorMessage('Selected file contains invalid JSON.');
+				} else {
+					vscode.window.showErrorMessage(`Failed to load header mappings from file: ${error}`);
+				}
+				console.error('Error loading header mappings from file:', error);
+			}
+		})
+	);
+
+	// Helper function to handle the actual loading of header mappings
+	async function loadHeaderMappings(mappings: { [key: string]: string }, source: string) {
+		// Check if user already has custom headers
+		const currentHeaders = vscode.workspace.getConfiguration('d2Modding').get<{ [key: string]: string }>('tableViewer.customHeaders', {});
+		const hasExistingHeaders = Object.keys(currentHeaders).length > 0;
+		
+		let shouldProceed = true;
+		if (hasExistingHeaders) {
+			const overwriteConfirm = await vscode.window.showWarningMessage(
+				`You already have ${Object.keys(currentHeaders).length} custom headers. This will replace them with ${Object.keys(mappings).length} mappings from ${source}. Continue?`,
+				{ modal: true },
+				'Replace', 'Merge', 'Cancel'
+			);
+			
+			if (overwriteConfirm === 'Cancel') {
+				shouldProceed = false;
+			} else if (overwriteConfirm === 'Merge') {
+				// Merge existing with new mappings (existing takes precedence)
+				const mergedMappings = { ...mappings, ...currentHeaders };
+				await vscode.workspace.getConfiguration('d2Modding').update(
+					'tableViewer.customHeaders', 
+					mergedMappings, 
+					vscode.ConfigurationTarget.Global
+				);
+				
+				vscode.window.showInformationMessage(
+					`Merged ${Object.keys(mappings).length} mappings from ${source} with ${Object.keys(currentHeaders).length} existing headers. Total: ${Object.keys(mergedMappings).length} mappings loaded!`
+				);
+				return;
+			}
+		}
+		
+		if (shouldProceed) {
+			// Replace with new mappings
+			await vscode.workspace.getConfiguration('d2Modding').update(
+				'tableViewer.customHeaders', 
+				mappings, 
+				vscode.ConfigurationTarget.Global
+			);
+			
+			vscode.window.showInformationMessage(
+				`Successfully loaded ${Object.keys(mappings).length} header mappings from ${source}! Refresh table viewers to see changes.`
+			);
+		}
+	}
 
 	// Auto-enable modding if D2 files are detected
 	checkForD2Files();

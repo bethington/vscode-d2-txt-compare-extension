@@ -127,6 +127,24 @@
         "title": "Open in Text Editor",
         "category": "D2 Modding",
         "icon": "$(edit)"
+      },
+      {
+        "command": "d2Modding.configureHeaders",
+        "title": "Configure Table Headers",
+        "category": "D2 Modding",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "d2Modding.loadDefaultHeaders",
+        "title": "Load Default Header Mappings",
+        "category": "D2 Modding",
+        "icon": "$(file-symlink-file)"
+      },
+      {
+        "command": "d2Modding.loadHeadersFromFile",
+        "title": "Load Header Mappings from File",
+        "category": "D2 Modding",
+        "icon": "$(file-directory)"
       }
     ],
     "menus": {
@@ -274,10 +292,15 @@
           "default": false,
           "description": "Wrap text in table columns when content exceeds maximum column width"
         },
+        "d2Modding.tableViewer.useCustomHeaders": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable custom header mappings and smart abbreviations in the Table Viewer"
+        },
         "d2Modding.tableViewer.customHeaders": {
           "type": "object",
           "default": {},
-          "description": "Custom header mappings for D2 table files. Map original header names to preferred display names.",
+          "description": "Custom header mappings for D2 table files. Map original header names to preferred display names. Use the 'Load Default Header Mappings' command to populate from extension data files.",
           "properties": {},
           "additionalProperties": {
             "type": "string"
@@ -306,17 +329,18 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.90.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
+    "@types/vscode": "^1.90.0",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
-    "eslint": "^9.32.0",
-    "typescript": "^5.9.2",
-    "ts-loader": "^9.5.2",
-    "webpack": "^5.101.0",
-    "webpack-cli": "^6.0.1",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "copy-webpack-plugin": "^13.0.1",
+    "eslint": "^9.32.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.0",
+    "webpack-cli": "^6.0.1"
   }
 }

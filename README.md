@@ -94,6 +94,7 @@ The D2 Table Viewer provides an intuitive spreadsheet-like interface for viewing
     "d2Modding.validateOnSave": true,
     "d2Modding.tableViewer.maxColumnWidth": 200,
     "d2Modding.tableViewer.wrapText": false,
+    "d2Modding.tableViewer.useCustomHeaders": true,
     "d2Modding.tableViewer.customHeaders": {
         "CharsiMagicMin": "CharM↓",
         "LysanderMagicMax": "LysM↑",
